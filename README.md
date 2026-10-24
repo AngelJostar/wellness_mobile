@@ -1,56 +1,40 @@
-# Welcome to your Expo app 👋
+# Wellness móvil
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+React Native con Expo SDK 58, TypeScript y Expo Router. Incluye registro, acceso, verificación en dos pasos cuando esté activada, perfil básico y cierre de sesión.
 
-## Get started
+## Desarrollo local
 
-1. Install dependencies
+    npm install
+    npx expo start
 
-   ```bash
-   npm install
-   ```
+La API debe estar iniciada desde wellness_web:
 
-2. Start the app
+    php artisan serve
 
-   ```bash
-   npx expo start
-   ```
+Configurar .env a partir de .env.example con la IP IPv4 de la computadora y el puerto 8083:
 
-In the output, you'll find options to open the app in a
+    EXPO_PUBLIC_API_URL=http://IP_DE_TU_COMPUTADORA:8083/api
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+La configuración actual está preparada para Android Emulator: EXPO_PUBLIC_API_URL=http://10.0.2.2:8083/api. Para un celular físico, usar la IP LAN de la computadora e iniciar Laravel con php artisan serve --host=0.0.0.0 --port=8083. Celular y computadora deben estar en la misma red. Reiniciar Expo después de cambiar .env.
 
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+localhost en un celular apunta al propio celular. No colocar claves de MySQL ni secretos en variables EXPO_PUBLIC_*.
 
-## Get a fresh project
+## Sesión
 
-When you're ready, run:
+En Android/iOS, el token se guarda en Expo SecureStore y se valida al abrir la app.
+En la vista previa web se conserva solo en memoria: recargar requiere iniciar sesión nuevamente.
+Si la API no está disponible durante la recuperación de sesión, la app permite reintentar sin eliminar el token.
+Un token expirado o revocado devuelve al acceso. Cerrar sesión revoca el token del dispositivo actual.
+Los usuarios se comparten con el sitio web; se puede entrar con una cuenta creada desde cualquiera de los dos.
+La recuperación de contraseña, verificación de correo y gestión de doble factor se realizan desde la web.
+El tráfico HTTP es para desarrollo local; configurar HTTPS para producción.
 
-```bash
-npm run reset-project
-```
+## Verificaciones
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+    npx expo lint
+    npx tsc --noEmit
+    npx expo-doctor
+    npx expo export --platform all
+## Dependencias pendientes del SDK
 
-### Other setup steps
-
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+La revisión npm audit reportó 5 alertas altas en la cadena de herramientas de Expo, relacionadas con node-forge y zod. La versión publicada de node-forge sigue siendo 1.4.0 y Expo CLI requiere Zod 3. La corrección automática propuesta intenta retroceder Expo a SDK 44; no se aplicó porque rompería la compatibilidad de SDK 58. Revisar actualizaciones compatibles del SDK antes de distribuir la aplicación.

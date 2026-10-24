@@ -1,98 +1,48 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useState } from 'react';
+import { Text, View } from 'react-native';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+import { Action, Brand, ErrorMessage, Page, styles } from '@/components/wellness-ui';
+import { useAuth } from '@/providers/auth-provider';
 
 export default function HomeScreen() {
+  const { user, logout, refresh } = useAuth();
+  const [busy, setBusy] = useState<'refresh' | 'logout' | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function run(action: 'refresh' | 'logout') {
+    if (busy) return;
+    setBusy(action);
+    setError(null);
+    try {
+      await (action === 'logout' ? logout() : refresh());
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'No se pudo completar la solicitud.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  if (!user) return null;
+
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+    <Page>
+      <Brand />
+      <View>
+        <Text style={styles.eyebrow}>Mi espacio</Text>
+        <Text style={styles.title}>Hola, {user.name.split(' ')[0]}.</Text>
+        <Text style={styles.subtitle}>Tu bienestar comienza contigo. Este es tu espacio para dar el siguiente paso.</Text>
+      </View>
+      <View style={styles.card}>
+        <Text style={styles.eyebrow}>Tu cuenta</Text>
+        <View><Text style={styles.label}>Nombre</Text><Text style={styles.subtitle}>{user.name}</Text></View>
+        <View><Text style={styles.label}>Correo electrónico</Text><Text style={styles.subtitle}>{user.email}</Text></View>
+        <Text style={styles.footer}>{user.email_verified_at ? 'Correo verificado' : 'Tu correo está pendiente de verificación. Puedes verificarlo desde la web.'}</Text>
+      </View>
+      <ErrorMessage message={error} />
+      <View style={{ gap: 12 }}>
+        <Action title="Actualizar mis datos" secondary busy={busy !== null} onPress={() => { void run('refresh'); }} />
+        <Action title="Cerrar sesión" busy={busy !== null} onPress={() => { void run('logout'); }} />
+      </View>
+    </Page>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
-});
